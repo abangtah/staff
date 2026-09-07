@@ -25,25 +25,27 @@ const Auth = {
             }
 
             try {
-                const res = await fetch('/api/auth/login', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ email, password })
-                });
+                const users = JSON.parse(localStorage.getItem('users')) || [];
+                const user = users.find(u => u.email === email && u.password === password);
                 
-                const data = await res.json();
-                if (!res.ok) {
-                    this.showAlert(data.error || 'Invalid email or password', 'danger');
+                if (!user) {
+                    this.showAlert('Invalid email or password', 'danger');
                     return;
                 }
 
-                App.setCurrentUser(data.user, data.token);
+                if (!user.isActive) {
+                    this.showAlert('Account disabled', 'danger');
+                    return;
+                }
+
+                const token = 'LOCAL-TOKEN-' + Date.now();
+                App.setCurrentUser(user, token);
                 this.showAlert('Login successful! Redirecting...', 'success');
                 setTimeout(() => {
                     window.location.href = 'PAGES/dashboard.html';
                 }, 1000);
             } catch (err) {
-                this.showAlert('Network error. Please try again later.', 'danger');
+                this.showAlert('Login error. Please try again later.', 'danger');
             }
         });
 
@@ -64,16 +66,13 @@ const Auth = {
         const deptSelect = document.getElementById('signupDepartment');
         if (deptSelect) {
             try {
-                const res = await fetch('/api/departments');
-                if (res.ok) {
-                    const depts = await res.json();
-                    depts.forEach(dept => {
-                        const opt = document.createElement('option');
-                        opt.value = dept;
-                        opt.textContent = dept;
-                        deptSelect.appendChild(opt);
-                    });
-                }
+                const depts = JSON.parse(localStorage.getItem('departments')) || [];
+                depts.forEach(dept => {
+                    const opt = document.createElement('option');
+                    opt.value = dept;
+                    opt.textContent = dept;
+                    deptSelect.appendChild(opt);
+                });
             } catch (err) {
                 console.error('Failed to load departments');
             }
@@ -164,24 +163,23 @@ const Auth = {
 
             const handleSave = async () => {
                 try {
-                    const res = await fetch('/api/users', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify(newUser)
-                    });
-                    const data = await res.json();
-                    
-                    if (!res.ok) {
-                        this.showAlert(data.error || 'Signup failed', 'danger');
+                    const users = JSON.parse(localStorage.getItem('users')) || [];
+                    const exists = users.find(u => u.email === email || (staffId && u.staffId === staffId));
+                    if (exists) {
+                        this.showAlert('Email or Staff ID already exists', 'danger');
                         return;
                     }
+                    
+                    newUser.isActive = true;
+                    users.push(newUser);
+                    localStorage.setItem('users', JSON.stringify(users));
 
                     this.showAlert('Account created successfully! Please login.', 'success');
                     setTimeout(() => {
                         window.location.href = '../index.html';
                     }, 1500);
                 } catch (err) {
-                    this.showAlert('Network error. Please try again.', 'danger');
+                    this.showAlert('Signup error. Please try again.', 'danger');
                 }
             };
 
@@ -237,8 +235,7 @@ const Auth = {
         if (!email) { this.showAlert('Please enter your email address', 'danger'); return; }
 
         try {
-            const res = await fetch('/api/users');
-            const users = await res.json();
+            const users = JSON.parse(localStorage.getItem('users')) || [];
             const user = users.find(u => u.email === email);
 
             if (!user) { this.showAlert('Email address not found in our system', 'danger'); return; }
@@ -303,9 +300,22 @@ const Auth = {
         if (newPassword !== confirmPassword) { this.showAlert('Passwords do not match', 'danger'); return; }
 
         try {
-            this.showAlert('Password reset updating logic requires backend implementation.', 'danger');
+            const users = JSON.parse(localStorage.getItem('users')) || [];
+            const userIndex = users.findIndex(u => u.email === otpData.email);
+            
+            if (userIndex !== -1) {
+                users[userIndex].password = newPassword;
+                localStorage.setItem('users', JSON.stringify(users));
+                localStorage.removeItem('passwordResetOTP');
+                this.showAlert('Password reset successful! Please login.', 'success');
+                setTimeout(() => {
+                    window.location.reload();
+                }, 1500);
+            } else {
+                this.showAlert('User not found in system.', 'danger');
+            }
         } catch (err) {
-            this.showAlert('Network error', 'danger');
+            this.showAlert('System error', 'danger');
         }
     },
 

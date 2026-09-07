@@ -30,32 +30,22 @@ const App = {
     async fetchState() {
         if (!this.token) return;
         try {
-            const headers = { 'Authorization': `Bearer ${this.token}` };
+            if (!localStorage.getItem('departments')) {
+                localStorage.setItem('departments', JSON.stringify(['Computer Science', 'Mathematics', 'Physics', 'Information Technology', 'Software Engineering']));
+            }
+            if (!localStorage.getItem('users')) {
+                localStorage.setItem('users', JSON.stringify([{ id: 'VC-001', email: 'vc@uni.edu', password: 'password', fullName: 'Vice Chancellor', role: 'VC', department: 'Administration', isActive: true }]));
+            }
             
-            const [usersRes, deptsRes, sessionsRes, appsRes, evalsRes, reviewsRes, notifRes] = await Promise.all([
-                fetch(`${this.API_URL}/users`, { headers }),
-                fetch(`${this.API_URL}/departments`),
-                fetch(`${this.API_URL}/sessions`, { headers }),
-                fetch(`${this.API_URL}/applications`, { headers }),
-                fetch(`${this.API_URL}/evaluations`, { headers }),
-                fetch(`${this.API_URL}/hodReviews`, { headers }),
-                fetch(`${this.API_URL}/notifications`, { headers })
-            ]);
-
-            this.state.users = await usersRes.json();
-            this.state.departments = await deptsRes.json();
-            this.state.sessions = await sessionsRes.json();
-            this.state.applications = await appsRes.json();
-            this.state.evaluations = await evalsRes.json();
-            this.state.hodReviews = await reviewsRes.json();
-            this.state.notifications = await notifRes.json();
-
-            // Provide backward compatibility for scripts reading from localStorage directly
-            localStorage.setItem('evaluations', JSON.stringify(this.state.evaluations));
-            localStorage.setItem('hodReviews', JSON.stringify(this.state.hodReviews));
-            localStorage.setItem('applications', JSON.stringify(this.state.applications));
+            this.state.users = JSON.parse(localStorage.getItem('users')) || [];
+            this.state.departments = JSON.parse(localStorage.getItem('departments')) || [];
+            this.state.sessions = JSON.parse(localStorage.getItem('sessions')) || [];
+            this.state.applications = JSON.parse(localStorage.getItem('applications')) || [];
+            this.state.evaluations = JSON.parse(localStorage.getItem('evaluations')) || [];
+            this.state.hodReviews = JSON.parse(localStorage.getItem('hodReviews')) || [];
+            this.state.notifications = JSON.parse(localStorage.getItem('notifications')) || [];
         } catch (e) {
-            console.error('Failed to fetch state', e);
+            console.error('Failed to fetch state from localStorage', e);
         }
     },
 
@@ -187,58 +177,53 @@ const App = {
 
     async createAppraisalSession(name) {
         if (!this.isHOD()) return { ok: false, message: 'Only HOD can create sessions.' };
-        const res = await fetch(`${this.API_URL}/sessions`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${this.token}` },
-            body: JSON.stringify({ id: 'SESSION-' + Date.now(), name })
-        });
-        const data = await res.json();
-        if (res.ok) await this.fetchState();
-        return { ok: res.ok, message: data.message || data.error };
+        const session = { id: 'SESSION-' + Date.now(), name, status: 'Open', createdBy: this.currentUser.id, createdAt: new Date().toISOString() };
+        this.state.sessions.push(session);
+        localStorage.setItem('sessions', JSON.stringify(this.state.sessions));
+        return { ok: true, message: 'Session created' };
     },
 
     async closeActiveSession() {
         if (!this.isHOD()) return false;
-        await fetch(`${this.API_URL}/sessions/close-active`, {
-            method: 'POST',
-            headers: { 'Authorization': `Bearer ${this.token}` }
+        this.state.sessions.forEach(s => {
+            if (s.status === 'Open') {
+                s.status = 'Closed';
+                s.closedAt = new Date().toISOString();
+            }
         });
-        await this.fetchState();
+        localStorage.setItem('sessions', JSON.stringify(this.state.sessions));
         return true;
     },
 
-    getNotifications() { return this.state.notifications; },
+    getNotifications() { 
+        return this.state.notifications.filter(n => n.userId === this.currentUser?.id).sort((a,b) => new Date(b.date) - new Date(a.date)); 
+    },
 
     async addNotification(userId, message, type = 'info', link = null) {
-        await fetch(`${this.API_URL}/notifications`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${this.token}` },
-            body: JSON.stringify({ id: 'NOTIF-' + Date.now(), userId, message, type, link })
-        });
-        await this.fetchState();
+        const notif = { id: 'NOTIF-' + Date.now(), userId, message, type, link, date: new Date().toISOString(), read: 0 };
+        this.state.notifications.push(notif);
+        localStorage.setItem('notifications', JSON.stringify(this.state.notifications));
         this.updateNotificationBadge();
     },
 
     getUnreadCount() {
-        return this.state.notifications.filter(n => !n.read).length;
+        return this.state.notifications.filter(n => n.userId === this.currentUser?.id && !n.read).length;
     },
 
     async markNotificationRead(notifId) {
-        await fetch(`${this.API_URL}/notifications/${notifId}/read`, {
-            method: 'PUT',
-            headers: { 'Authorization': `Bearer ${this.token}` }
-        });
         const notif = this.state.notifications.find(n => n.id === notifId);
-        if (notif) notif.read = 1;
+        if (notif) {
+            notif.read = 1;
+            localStorage.setItem('notifications', JSON.stringify(this.state.notifications));
+        }
         this.updateNotificationBadge();
     },
 
     async markAllRead() {
-        await fetch(`${this.API_URL}/notifications/read-all`, {
-            method: 'PUT',
-            headers: { 'Authorization': `Bearer ${this.token}` }
+        this.state.notifications.forEach(n => {
+            if (n.userId === this.currentUser?.id) n.read = 1;
         });
-        this.state.notifications.forEach(n => n.read = 1);
+        localStorage.setItem('notifications', JSON.stringify(this.state.notifications));
         this.updateNotificationBadge();
     },
 
@@ -249,6 +234,34 @@ const App = {
             badge.textContent = count;
             badge.style.display = count > 0 ? 'flex' : 'none';
         }
+    },
+
+    async addApplication(payload) {
+        this.state.applications.push(payload);
+        localStorage.setItem('applications', JSON.stringify(this.state.applications));
+        return { ok: true };
+    },
+
+    async updateApplicationStatus(id, status) {
+        const app = this.state.applications.find(a => a.id === id);
+        if (app) {
+            app.status = status;
+            localStorage.setItem('applications', JSON.stringify(this.state.applications));
+            return { ok: true };
+        }
+        return { ok: false };
+    },
+
+    async addEvaluation(payload) {
+        this.state.evaluations.push(payload);
+        localStorage.setItem('evaluations', JSON.stringify(this.state.evaluations));
+        return { ok: true };
+    },
+
+    async addHodReview(payload) {
+        this.state.hodReviews.push(payload);
+        localStorage.setItem('hodReviews', JSON.stringify(this.state.hodReviews));
+        return { ok: true };
     },
 
     toggleDarkMode() {

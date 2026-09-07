@@ -82,11 +82,7 @@ const ApplyEval = {
         const appPayload = { id:'APP-'+Date.now(), staffId:user.id, department:user.department, type, details, certificates:this.tempCerts, sessionId:session.id, sessionName:session.name, status:'Pending', date:new Date().toISOString() };
         
         try {
-            const res = await fetch(App.API_URL + '/applications', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${App.token}` },
-                body: JSON.stringify(appPayload)
-            });
+            const res = await App.addApplication(appPayload);
             if (res.ok) {
                 this.tempCerts=[]; document.getElementById('applyForm').reset(); this.renderCertList();
                 await App.fetchState(); this.renderSessionState(); this.renderMyApplications();
@@ -95,7 +91,7 @@ const ApplyEval = {
                 App.showToast('Failed to submit application', 'error');
             }
         } catch (e) {
-             App.showToast('Network error', 'error');
+             App.showToast('System error', 'error');
         }
     }
 };

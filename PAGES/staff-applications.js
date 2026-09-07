@@ -46,11 +46,7 @@ const StaffApplications = {
     setupModal(){document.getElementById('closeViewModal')?.addEventListener('click',()=>document.getElementById('viewAppModal').classList.remove('active'));},
     async updateStatus(id,status){
         try {
-            const res = await fetch(`${App.API_URL}/applications/${id}/status`, {
-                method: 'PUT',
-                headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${App.token}` },
-                body: JSON.stringify({ status })
-            });
+            const res = await App.updateApplicationStatus(id, status);
             if (res.ok) {
                 const apps=this.getApplications(),i=apps.findIndex(a=>a.id===id);
                 if(i>=0){

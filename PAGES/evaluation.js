@@ -173,11 +173,7 @@ const Evaluation = {
         };
 
         try {
-            const res = await fetch(App.API_URL + '/hodReviews', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${App.token}` },
-                body: JSON.stringify(reviewPayload)
-            });
+            const res = await App.addHodReview(reviewPayload);
             
             if (res.ok) {
                 await App.addNotification(this.currentStaff.id, `Your ${session.name} results have been reviewed by the HOD and sent to the VC.`, 'info', 'dashboard.html');

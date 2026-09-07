@@ -160,11 +160,7 @@ const StudentEvaluation = {
         };
 
         try {
-            const res = await fetch(App.API_URL + '/evaluations', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${App.token}` },
-                body: JSON.stringify(evaluationPayload)
-            });
+            const res = await App.addEvaluation(evaluationPayload);
             
             if (res.ok) {
                 await App.addNotification(this.currentStaff.id, `A student has submitted an evaluation for ${session.name}.`, 'info', 'dashboard.html');
