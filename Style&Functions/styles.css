@@ -1464,3 +1464,79 @@ html, body {
     .content-wrapper { padding: 8px; }
     .topbar { padding: 0 8px; }
 }
+
+/* ---- STRICT MOBILE POLISH OVERRIDES ---- */
+html, body {
+    overflow-x: hidden !important;
+    width: 100% !important;
+    position: relative;
+}
+
+@media (max-width: 575.98px) {
+    /* Touch Targets */
+    .form-control, .form-select, .btn, .input-group-text {
+        min-height: 48px !important;
+        font-size: 16px !important; /* Prevents iOS auto-zoom */
+    }
+    
+    /* Login / Signup Card */
+    .auth-page {
+        padding: 10px !important;
+    }
+    .auth-card {
+        padding: 25px 15px !important;
+        border-radius: 12px !important;
+        margin: 0 auto;
+    }
+    
+    /* Forms Spacing */
+    .form-group {
+        margin-bottom: 14px !important;
+    }
+    .auth-logo i {
+        font-size: 40px !important;
+    }
+    .auth-logo h2 {
+        font-size: 22px !important;
+    }
+    
+    /* Typography */
+    h1, .page-title { font-size: 18px !important; }
+    h3, .card-title { font-size: 16px !important; }
+    
+    /* Modals - Bottom Sheet Style */
+    .modal-content {
+        width: 100% !important;
+        max-width: 100% !important;
+        margin: 0 !important;
+        border-radius: 16px 16px 0 0 !important;
+        position: absolute;
+        bottom: 0;
+        max-height: 85vh !important;
+        animation: slideUp 0.3s ease !important;
+    }
+    .modal-overlay {
+        align-items: flex-end !important;
+    }
+    
+    /* Tables */
+    .table-container {
+        padding-bottom: 10px;
+    }
+    .data-table th, .data-table td {
+        padding: 12px 10px !important;
+    }
+}
+
+@media (max-width: 380px) {
+    .auth-card {
+        padding: 20px 12px !important;
+    }
+    .auth-logo i { font-size: 32px !important; }
+    .auth-logo h2 { font-size: 18px !important; }
+}
+
+@keyframes slideUp {
+    from { transform: translateY(100%); }
+    to { transform: translateY(0); }
+}
