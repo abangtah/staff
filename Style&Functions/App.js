@@ -18,6 +18,22 @@ const App = {
     API_URL: '/api',
 
     async init() {
+        if (!localStorage.getItem('departments')) {
+            localStorage.setItem('departments', JSON.stringify(['Computer Science', 'Mathematics', 'Physics', 'Information Technology', 'Software Engineering']));
+        }
+        
+        let existingUsers = JSON.parse(localStorage.getItem('users')) || [];
+        if (!existingUsers.some(u => u.email === 'vc@university.edu')) {
+            const defaultUsers = [
+                { id: 'VC-001', email: 'vc@university.edu', password: 'vc123456', fullName: 'Vice Chancellor', role: 'VC', department: 'Administration', isActive: true },
+                { id: 'HOD-001', email: 'hod@university.edu', password: 'hod123456', fullName: 'Head of Computer Science', role: 'HOD', department: 'Computer Science', isActive: true },
+                { id: 'LEC-001', email: 'lecturer@university.edu', password: 'lec123456', fullName: 'Dr. Lecturer', role: 'Lecturer', department: 'Computer Science', staffId: 'LEC-100001', isActive: true },
+                { id: 'STU-001', email: 'student@university.edu', password: 'stu123456', fullName: 'John Student', role: 'Student', department: 'Computer Science', staffId: 'STU-200001', isActive: true }
+            ];
+            existingUsers = [...existingUsers, ...defaultUsers];
+            localStorage.setItem('users', JSON.stringify(existingUsers));
+        }
+
         this.token = localStorage.getItem('token');
         if (this.token) {
             this.currentUser = JSON.parse(localStorage.getItem('currentUser'));
@@ -30,13 +46,6 @@ const App = {
     async fetchState() {
         if (!this.token) return;
         try {
-            if (!localStorage.getItem('departments')) {
-                localStorage.setItem('departments', JSON.stringify(['Computer Science', 'Mathematics', 'Physics', 'Information Technology', 'Software Engineering']));
-            }
-            if (!localStorage.getItem('users')) {
-                localStorage.setItem('users', JSON.stringify([{ id: 'VC-001', email: 'vc@uni.edu', password: 'password', fullName: 'Vice Chancellor', role: 'VC', department: 'Administration', isActive: true }]));
-            }
-            
             this.state.users = JSON.parse(localStorage.getItem('users')) || [];
             this.state.departments = JSON.parse(localStorage.getItem('departments')) || [];
             this.state.sessions = JSON.parse(localStorage.getItem('sessions')) || [];
